@@ -1,0 +1,144 @@
+<!--
+  File: letter.html
+  Phiên bản: Thư 3D nền hồng sáng nhẹ • giấy chấm bi • chữ hiện dần từng dòng
+  Lưu ý: đặt file cạnh index.html trong repo 20-10
+  Nhạc: Google Drive (đã chèn sẵn)
+-->
+
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Thư 20/10 💌</title>
+  <style>
+    :root{--pink-light:#ffd7e8;--pink-medium:#ffb6d9;--pink-dark:#ff8cc7;--accent:#ff3b8f}
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0}
+    body{
+      background: radial-gradient(circle at center, var(--pink-light) 0%, var(--pink-medium) 60%, var(--pink-dark) 100%);
+      display:flex;align-items:center;justify-content:center;font-family:"Poppins",system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      overflow:hidden;perspective:1200px;color:#6b0736
+    }
+
+    .stage{position:relative;width:100%;max-width:920px;height:100vh;display:flex;align-items:center;justify-content:center}
+    .envelope-wrap{width:340px;height:240px;transform-style:preserve-3d;transition:transform 0.8s ease}
+    .envelope{position:relative;width:340px;height:220px;transform-style:preserve-3d;cursor:pointer;filter:drop-shadow(0 10px 30px rgba(255,105,180,0.25))}
+
+    .env-body{position:absolute;inset:0;background:var(--pink-medium);border-radius:14px;box-shadow:0 24px 50px rgba(0,0,0,0.18);transform:translateZ(-14px)}
+
+    .flap{position:absolute;left:0;right:0;top:-6px;height:120px;background:var(--pink-dark);border-radius:14px;clip-path:polygon(0 0,100% 0,50% 56%);transform-origin:center top;transform:rotateX(0deg);transition:transform 0.9s cubic-bezier(.2,.9,.2,1);box-shadow:0 10px 30px rgba(0,0,0,0.12)}
+
+    .paper{position:absolute;left:50%;top:36px;transform:translateX(-50%) translateZ(18px);width:280px;height:180px;background:#ffe6f6;border-radius:10px;padding:20px;box-shadow:0 14px 40px rgba(255,130,180,0.35);opacity:0;transition:transform 0.9s ease,opacity 0.6s ease;background-image:radial-gradient(#ff9fcf 1.5px, transparent 1.5px);background-size:18px 18px;border:2px solid #ff9fcf}
+
+    .paper.open{opacity:1;transform:translateX(-50%) translateY(-90px) translateZ(28px);animation:glow 2s ease-in-out infinite alternate}
+    @keyframes glow{from{box-shadow:0 0 18px 6px rgba(255,180,220,0.4)}to{box-shadow:0 0 40px 12px rgba(255,160,210,0.8)}}
+
+    .message-lines{display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;height:100%;}
+    .line{opacity:0;transform:translateY(8px);transition:opacity 600ms ease, transform 600ms ease;color:var(--accent);text-align:center;font-size:15px;line-height:1.6}
+    .line.visible{opacity:1;transform:translateY(0)}
+
+    .envelope.open .flap{transform:rotateX(-180deg)}
+
+    .sparkles{position:absolute;inset:0;pointer-events:none}
+    .sparkles span{position:absolute;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.9);filter:blur(2px);opacity:0;animation:rise 3.8s linear infinite}
+    @keyframes rise{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-260px) scale(0.4)}}
+
+    .heart{position:absolute;width:18px;height:18px;transform:rotate(45deg);pointer-events:none}
+    .heart:before,.heart:after{content:'';position:absolute;width:18px;height:18px;border-radius:50%;background:var(--accent)}
+    .heart:before{top:-9px;left:0}.heart:after{left:-9px;top:0}
+    @keyframes floatH{0%{transform:translateY(0) rotate(45deg) scale(1);opacity:1}100%{transform:translateY(-300px) rotate(45deg) scale(0.6);opacity:0}}
+
+    .hint{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);font-size:13px;color:#6b0736;opacity:0.95}
+
+    @media(max-width:460px){.envelope-wrap{transform:scale(0.86)}.hint{font-size:12px}}
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <div class="envelope-wrap">
+      <div class="envelope" id="envelope" tabindex="0" aria-label="Nhấn để mở thư">
+        <div class="env-body" aria-hidden="true"></div>
+        <div class="flap" id="flap" aria-hidden="true"></div>
+        <div class="paper" id="paper" aria-hidden="true">
+          <div class="message-lines" id="messageLines" data-text="💌
+Chúc chị 20/10 vui vẻ, ngập tràn niềm vui và hạnh phúc
+và ngày nào cũng là baby boo 💐💝"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sparkles" id="sparkles" aria-hidden="true"></div>
+    <div class="hint">Nhấn vào phong bì để mở thư 💖</div>
+  </div>
+
+  <!-- Nhạc từ Google Drive (đã chuyển sang direct download link) -->
+  <audio id="bgm" preload="auto" loop>
+    <source src="https://drive.google.com/uc?export=download&id=1nYDgJqFkfPLVdRciF9TZP3m9-w2kXUey" type="audio/mpeg">
+  </audio>
+
+  <script>
+    const envelope = document.getElementById('envelope');
+    const paper = document.getElementById('paper');
+    const sparkles = document.getElementById('sparkles');
+    const audio = document.getElementById('bgm');
+    const msg = document.getElementById('messageLines');
+    let opened = false;
+
+    // Tạo các dòng từ data-text
+    function createLines(){
+      const text = msg.getAttribute('data-text') || '';
+      const lines = text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+      msg.innerHTML='';
+      lines.forEach((ln,i)=>{
+        const d = document.createElement('div'); d.className='line'; d.textContent = ln; msg.appendChild(d);
+      });
+    }
+    createLines();
+
+    // hiệu ứng lấp lánh
+    for(let i=0;i<20;i++){
+      const s = document.createElement('span');
+      s.style.left = (5 + Math.random()*90) + '%';
+      s.style.bottom = (10 + Math.random()*20) + 'px';
+      s.style.animationDelay = (Math.random()*3) + 's';
+      s.style.width = (4 + Math.random()*8) + 'px';
+      s.style.height = s.style.width;
+      sparkles.appendChild(s);
+    }
+
+    // trái tim bay
+    for(let i=0;i<6;i++){
+      const h = document.createElement('div'); h.className='heart';
+      h.style.left = (8 + Math.random()*84) + '%';
+      h.style.bottom = (10 + Math.random()*30) + 'px';
+      h.style.animation = 'floatH ' + (5 + Math.random()*4) + 's linear ' + (Math.random()*2) + 's infinite';
+      document.body.appendChild(h);
+    }
+
+    // show lines one-by-one
+    function revealLines(){
+      const lines = msg.querySelectorAll('.line');
+      lines.forEach((el, idx)=>{
+        setTimeout(()=> el.classList.add('visible'), idx * 650);
+      });
+    }
+
+    // open envelope
+    envelope.addEventListener('click', ()=>{
+      if(opened) return; opened = true;
+      envelope.classList.add('open');
+      setTimeout(()=>{
+        paper.classList.add('open');
+        revealLines();
+      }, 520);
+      // play audio after user gesture
+      audio.play().catch(()=>console.log('Autoplay bị chặn'));
+    });
+
+    // keyboard accessibility
+    envelope.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') envelope.click(); });
+
+  </script>
+</body>
+</html>
